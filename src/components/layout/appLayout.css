@@ -1,0 +1,25 @@
+/* src/components/layout/layout.css */
+.main-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f6fa;
+  width: 100vw;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100vw;
+}
+
+.zona-trabajo {
+  flex: 1;
+  padding: 2.5rem 2.5rem 2.5rem 2rem;
+  background: #f5f6fa;
+  min-height: 0;
+  overflow: auto;
+  color: #232946;
+  font-size: 1.1rem;
+}
