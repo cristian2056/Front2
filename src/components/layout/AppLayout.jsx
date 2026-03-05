@@ -8,8 +8,9 @@ import Header  from "./Header";
 import "./appLayout.css";
 
 const routeTitles = {
-  "/":       "Dashboard",
-  "/marcas": "Marcas",
+  "/":        "Dashboard",
+  "/marcas":  "Marcas",
+  "/tickets": "Tickets",
 };
 
 export default function AppLayout() {
