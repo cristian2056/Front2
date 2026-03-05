@@ -8,9 +8,9 @@ import "./menu.css";
 import goreaLogo from "../../assets/Imagenes/gorea_logo.png";
 
 const menuItems = [
-  { path: "/",       name: "Dashboard", icon: "🏠" },
-  { path: "/marcas", name: "Marcas",    icon: "🏷️" },
-
+  { path: "/",        name: "Dashboard", icon: "🏠" },
+  { path: "/marcas",  name: "Marcas",    icon: "🏷️" },
+  { path: "/tickets", name: "Tickets",   icon: "🎫" },
 ];
 
 export default function Sidebar() {
