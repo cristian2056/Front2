@@ -2,8 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { marcasApi } from "../../api/marcas.api";
 import ModalDialog from "../../components/ui/ModalDialog";
-import MarcaForm from "./MarcaForm";
-import DataTable from "../../components/ui/DataTable";
+import DataTable   from "../../components/ui/DataTable";
+import FormModal   from "../../components/ui/FormModal";
+
+const FIELDS = [
+  { name: "nombre", label: "Nombre", type: "text", required: true, placeholder: "Ej: Samsung", span: 2 },
+  { name: "modelo", label: "Modelo", type: "text", placeholder: "Ej: Galaxy S23", span: 2 },
+];
 
 
 // Definición de columnas para la tabla de marcas

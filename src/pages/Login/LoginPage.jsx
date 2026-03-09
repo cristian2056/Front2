@@ -5,11 +5,9 @@ import { useDispatch } from "react-redux";
 import { setCredentials } from "../../stores/authSlice";
 import { setMenu } from "../../stores/menuSlice";
 import { authApi } from "../../api/auth.api";
+import { http } from "../../services/http";
 
-const COLOR = {
-  primary:     "#4c7318",
-  primaryDark: "#3e5b19",
-};
+const COLOR = { primary: "#4c7318", primaryDark: "#3e5b19" };
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -24,11 +22,9 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       // 1. Login
       const resultado = await authApi.login(userName, password);
-
       if (!resultado.exito) {
         setError(resultado.mensaje || "Credenciales incorrectas.");
         return;
@@ -39,9 +35,14 @@ export default function LoginPage() {
       // 2. Guardar credenciales en Redux
       dispatch(setCredentials({ accessToken, usuario }));
 
-      // 3. Cargar menús y permisos del usuario
+      // 3. Cargar menús y permisos — usa http.js que ya tiene el Bearer token
+      //    Pasamos el token manualmente porque Redux aún no lo tiene en este momento
       try {
-        const menuResult = await authApi.obtenerMenu(accessToken);
+        const menuResult = await fetch(
+          `${import.meta.env.VITE_API_BASE_URI}/api/Menu`,
+          { headers: { Authorization: `Bearer ${accessToken}` }, credentials: "include" }
+        ).then(r => r.json());
+
         if (menuResult.exito) {
           dispatch(setMenu({
             menus:    menuResult.datos.menus    ?? [],
@@ -49,11 +50,10 @@ export default function LoginPage() {
           }));
         }
       } catch {
-        // Si falla el menú no bloqueamos el login, el sidebar usará fallback
-        console.warn("[Login] No se pudo cargar el menú del usuario.");
+        console.warn("[Login] No se pudo cargar el menú — se usará el fallback.");
       }
 
-      // 4. Redirigir al dashboard
+      // 4. Redirigir
       navigate("/", { replace: true });
 
     } catch {
@@ -63,7 +63,7 @@ export default function LoginPage() {
     }
   };
 
-  const inputStyle = {
+  const inp = {
     width: "100%", padding: "11px 14px", borderRadius: 9,
     border: "1.5px solid #d1d5db", fontSize: "1rem",
     boxSizing: "border-box", outline: "none", background: "#fff", color: "#111",
@@ -80,7 +80,6 @@ export default function LoginPage() {
         width: "100%", maxWidth: 400,
         boxShadow: "0 20px 60px rgba(26,43,8,0.25)",
       }}>
-
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{
             width: 56, height: 56,
@@ -99,29 +98,18 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6, color: "#374151", fontSize: "0.9rem" }}>
-              Usuario
-            </label>
+            <label style={{ display: "block", fontWeight: 600, marginBottom: 6, color: "#374151", fontSize: "0.9rem" }}>Usuario</label>
             <input type="text" placeholder="Tu nombre de usuario"
-              value={userName} onChange={e => setUserName(e.target.value)}
-              required style={inputStyle} />
+              value={userName} onChange={e => setUserName(e.target.value)} required style={inp} />
           </div>
-
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6, color: "#374151", fontSize: "0.9rem" }}>
-              Contraseña
-            </label>
+            <label style={{ display: "block", fontWeight: 600, marginBottom: 6, color: "#374151", fontSize: "0.9rem" }}>Contraseña</label>
             <input type="password" placeholder="Tu contraseña"
-              value={password} onChange={e => setPassword(e.target.value)}
-              required style={inputStyle} />
+              value={password} onChange={e => setPassword(e.target.value)} required style={inp} />
           </div>
 
           {error && (
-            <div style={{
-              background: "#fef2f2", border: "1px solid #fecaca",
-              borderRadius: 8, padding: "10px 14px",
-              color: "#dc2626", fontSize: "0.9rem", marginBottom: 16,
-            }}>
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px", color: "#dc2626", fontSize: "0.9rem", marginBottom: 16 }}>
               {error}
             </div>
           )}

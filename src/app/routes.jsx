@@ -6,13 +6,17 @@ import { RequireAuth, PublicRoute } from "../components/auth/AuthGuards";
 import AppLayout      from "../components/layout/AppLayout.jsx";
 import LoginPage      from "../pages/Login/LoginPage";
 import Dashboard      from "../pages/Dashboard";
-import MarcasPage     from "../pages/Marcas/MarcasPage";
+import MarcasPage        from "../pages/Marcas/MarcasPage";
+import TiposActivosPage  from "../pages/TiposActivos/TiposActivosPage";
+import ProveedoresPage   from "../pages/Proveedores/ProveedoresPage";
+import DependenciasPage  from "../pages/Dependencias/DependenciasPage";
 import EquiposPage    from "../pages/Equipo/EquiposPage";
 import EquipoDetalle  from "../pages/Equipo/EquipoDetalle";
 import PersonalPage   from "../pages/Personal/PersonalPage";
 import PersonaDetalle from "../pages/Personal/PersonaDetalle";
 import Proximamente   from "../pages/Proximamente";
 import UsuariosPage   from "../pages/Seguridad/UsuariosPage";
+import RolesPage      from "../pages/Seguridad/RolesPage";
 
 // Rutas con placeholder "Próximamente"
 const prox = <Proximamente />;
@@ -44,9 +48,9 @@ export const router = createBrowserRouter([
 
           // ── Administración ────────────────────────────
           { path: "marcas",           element: <MarcasPage /> },
-          { path: "tipos-activos",    element: prox },
-          { path: "proveedores",      element: prox },
-          { path: "dependencias",     element: prox },
+          { path: "tipos-activos",    element: <TiposActivosPage /> },
+          { path: "proveedores",      element: <ProveedoresPage /> },
+          { path: "dependencias",     element: <DependenciasPage /> },
 
           // ── Soporte ───────────────────────────────────
           { path: "tickets",          element: prox },
@@ -54,7 +58,7 @@ export const router = createBrowserRouter([
 
           // ── Seguridad ─────────────────────────────────
           { path: "usuarios", element: <UsuariosPage /> },
-          { path: "roles",            element: prox },
+          { path: "roles",            element:<RolesPage />},
 
           // ── Personal (existente) ──────────────────────
           { path: "personal",         element: <PersonalPage /> },
