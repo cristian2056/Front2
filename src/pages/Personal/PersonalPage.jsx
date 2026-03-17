@@ -6,6 +6,7 @@ import ModalDialog  from "../../components/ui/ModalDialog";
 import DataTable    from "../../components/ui/DataTable";
 import PersonaForm  from "./PersonaForm";
 import RolesModal   from "./RolesModal";
+import { usePermiso } from "../../stores/menuSlice";
 
 // ── Columnas de la tabla ───────────────────────────────────
 const columnas = [
@@ -25,6 +26,7 @@ const columnas = [
 
 export default function PersonalPage() {
   const navigate = useNavigate(); // ✅ dentro del componente
+  const { crear, modificar, eliminar } = usePermiso("Personal");
 
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -40,7 +42,7 @@ export default function PersonalPage() {
     setLoading(true);
     try {
       const data = await personalApi.listarPersonas();
-      setItems(Array.isArray(data.datos) ? data.datos : []);
+      setItems(Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : []);
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al cargar el personal." });
     } finally {
@@ -55,7 +57,7 @@ export default function PersonalPage() {
     setFormLoading(true);
     try {
       if (form?.personaId) {
-        await personalApi.actualizarPersona(form.personaId, {
+        const res = await personalApi.actualizarPersona(form.personaId, {
           tipoDocumento:    valores.tipoDocumento,
           numeroDocumento:  valores.numeroDocumento,
           nombres:          valores.nombres,
@@ -66,6 +68,7 @@ export default function PersonalPage() {
           telefono:         valores.telefono,
           direccion:        valores.direccion,
         });
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo actualizar.");
         setModal({ open: true, variant: "success", message: "Persona actualizada correctamente." });
       } else {
         const respPersona = await personalApi.crearPersona({
@@ -79,15 +82,20 @@ export default function PersonalPage() {
           telefono:         valores.telefono,
           direccion:        valores.direccion,
         });
+        if (respPersona?.exito === false) throw new Error(respPersona.mensaje || "No se pudo crear la persona.");
 
         if (valores.crearUsuario && valores.userName && valores.password) {
-          const personaId = respPersona.datos?.personaId;
-          await personalApi.crearUsuario({
+          const personaId = respPersona.datos?.personaId ?? respPersona.datos?.id;
+          if (!personaId) throw new Error("No se pudo obtener el ID de la persona creada.");
+          const resU = await personalApi.crearUsuario({
             personaId,
-            userName:    valores.userName,
-            password:    valores.password,
-            tipoUsuario: valores.tipoUsuario,
+            userName:      valores.userName,
+            password:      valores.password,
+            dependenciaId: Number(valores.dependenciaId) || null,
+            rolId:         Number(valores.rolId) || null,
+            activo:        true,
           });
+          if (resU?.exito === false) throw new Error(resU.mensaje || "No se pudo crear el usuario.");
           setModal({ open: true, variant: "success", message: "Persona y usuario creados correctamente." });
         } else {
           setModal({ open: true, variant: "success", message: "Persona creada correctamente." });
@@ -150,13 +158,13 @@ export default function PersonalPage() {
           style={{ padding: "8px 14px", borderRadius: 8,
             border: "1px solid #d1d5db", fontSize: "0.95rem", minWidth: 260 }}
         />
-        <button
+        {crear && <button
           onClick={() => setForm({})}
           style={{ padding: "9px 20px", borderRadius: 8,
             background: "#4c7318", color: "#fff", border: "none",
             fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", whiteSpace: "nowrap" }}>
           + Nueva persona
-        </button>
+        </button>}
       </div>
 
       {/* Tabla */}
@@ -166,7 +174,7 @@ export default function PersonalPage() {
         loading={loading}
         keyField="personaId"
         mensajeVacio="No hay personal registrado."
-        onEdit={(p) => setForm({
+        onEdit={modificar ? (p) => setForm({
           personaId:        p.personaId,
           tipoDocumento:    p.tipoDocumento,
           numeroDocumento:  p.numeroDocumento,
@@ -177,8 +185,8 @@ export default function PersonalPage() {
           email:            p.email,
           telefono:         p.telefono,
           direccion:        p.direccion,
-        })}
-        onDelete={(p) => setConfirm({ open: true, personaId: p.personaId, loading: false })}
+        }) : undefined}
+        onDelete={eliminar ? (p) => setConfirm({ open: true, personaId: p.personaId, loading: false }) : undefined}
         accionesExtra={accionesExtra}
       />
 

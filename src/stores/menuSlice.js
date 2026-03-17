@@ -33,9 +33,10 @@ export const selectPermisos     = (state) => state.menu.permisos;
 export const selectMenuCargado  = (state) => state.menu.cargado;
 
 // Hook: usePermiso("Equipos") → { leer, crear, modificar, eliminar }
+// Las claves en permisos son lowercase ("equipos"), se normaliza la entrada.
 export function usePermiso(nombreModulo) {
   return useSelector((state) =>
-    state.menu.permisos[nombreModulo] ?? {
+    state.menu.permisos[nombreModulo.toLowerCase()] ?? {
       leer: false, crear: false, modificar: false, eliminar: false,
     }
   );

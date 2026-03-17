@@ -41,12 +41,8 @@ const ICONOS = {
 };
 const getIcono = (nombre) => ICONOS[nombre?.toLowerCase()] ?? "📄";
 
-// URLs que no aparecen en el menú lateral (se gestionan inline en el wizard o por URL directa)
-const URLS_OCULTAR = new Set(["/marcas", "/tipos-activos", "/componentes", "/software"]);
 function filtrarMenu(items) {
-  return items
-    .filter(item => !URLS_OCULTAR.has(item.url))
-    .map(item => ({ ...item, subMenus: item.subMenus?.length ? filtrarMenu(item.subMenus) : [] }));
+  return items.map(item => ({ ...item, subMenus: item.subMenus?.length ? filtrarMenu(item.subMenus) : [] }));
 }
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────

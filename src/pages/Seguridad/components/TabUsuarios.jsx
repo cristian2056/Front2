@@ -2,7 +2,7 @@
 import React from "react";
 import { C, btnSt } from "../constants";
 
-export default function TabUsuarios({ usuarios, onQuitar, onAbrirModal }) {
+export default function TabUsuarios({ usuarios, onAbrirModal }) {
   return (
     <div style={{ padding: "20px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -37,7 +37,7 @@ export default function TabUsuarios({ usuarios, onQuitar, onAbrirModal }) {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontWeight: 800, fontSize: "0.9rem", flexShrink: 0,
               }}>
-                {(u.userName ?? u.nombreCompleto ?? "?")[0].toUpperCase()}
+                {(u.usuarioNombre ?? "?")[0].toUpperCase()}
               </div>
 
               <div style={{ flex: 1 }}>
@@ -45,25 +45,9 @@ export default function TabUsuarios({ usuarios, onQuitar, onAbrirModal }) {
                   {u.nombreCompleto ?? u.userName ?? `Usuario #${u.usuarioId}`}
                 </div>
                 {u.userName && u.nombreCompleto && (
-                  <div style={{ fontSize: "0.78rem", color: C.gray400 }}>@{u.userName}</div>
+                  <div style={{ fontSize: "0.75rem", color: C.gray400 }}>@{u.userName}</div>
                 )}
               </div>
-
-              {u.tipoUsuario && (
-                <span style={{
-                  padding: "2px 8px", borderRadius: 20, fontSize: "0.73rem",
-                  fontWeight: 700, background: C.gray100, color: C.gray600,
-                }}>
-                  {u.tipoUsuario}
-                </span>
-              )}
-
-              <button
-                onClick={() => onQuitar(u.usuarioId)}
-                style={btnSt({ background: C.dangerLight, color: C.danger, padding: "5px 10px", fontSize: "0.8rem", borderRadius: 6 })}
-              >
-                × Quitar
-              </button>
             </div>
           ))}
         </div>

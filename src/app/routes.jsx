@@ -16,12 +16,11 @@ import EquiposPage    from "../pages/Equipo/EquiposPage";
 import EquipoDetalle  from "../pages/Equipo/EquipoDetalle";
 import PersonalPage   from "../pages/Personal/PersonalPage";
 import PersonaDetalle from "../pages/Personal/PersonaDetalle";
-import Proximamente   from "../pages/Proximamente";
-import UsuariosPage   from "../pages/Seguridad/UsuariosPage";
-import RolesPage      from "../pages/Seguridad/RolesPage";
-
-// Rutas con placeholder "Próximamente"
-const prox = <Proximamente />;
+import UsuariosPage        from "../pages/Seguridad/UsuariosPage";
+import RolesPage           from "../pages/Seguridad/RolesPage";
+import TiketsPage          from "../pages/Tikets/TiketsPage";
+import MantenimientosPage  from "../pages/Mantenimientos/MantenimientosPage";
+import EquiposRedPage      from "../pages/EquiposRed/EquiposRedPage";
 
 export const router = createBrowserRouter([
 
@@ -46,7 +45,7 @@ export const router = createBrowserRouter([
           { path: "equipos/:id",      element: <EquipoDetalle /> },
           { path: "componentes",      element: <ComponentesPage /> },
           { path: "software",         element: <SoftwarePage /> },
-          { path: "equipos-red",      element: prox },
+          { path: "equipos-red",      element: <EquiposRedPage /> },
 
           // ── Administración ────────────────────────────
           { path: "marcas",           element: <MarcasPage /> },
@@ -55,8 +54,8 @@ export const router = createBrowserRouter([
           { path: "dependencias",     element: <DependenciasPage /> },
 
           // ── Soporte ───────────────────────────────────
-          { path: "tickets",          element: prox },
-          { path: "mantenimientos",   element: prox },
+          { path: "tickets",          element: <TiketsPage /> },
+          { path: "mantenimientos",   element: <MantenimientosPage /> },
 
           // ── Seguridad ─────────────────────────────────
           { path: "usuarios", element: <UsuariosPage /> },

@@ -4,6 +4,7 @@ import { tiposActivosApi } from "../../api/administracion.api";
 import DataTable  from "../../components/ui/DataTable";
 import ModalDialog from "../../components/ui/ModalDialog";
 import FormModal   from "../../components/ui/FormModal";
+import { usePermiso } from "../../stores/menuSlice";
 
 const FIELDS = [
   { name: "nombre", label: "Nombre", type: "text", required: true, placeholder: "Ej: Laptop, Impresora, Monitor...", span: 2 },
@@ -15,6 +16,7 @@ const columnas = [
 ];
 
 export default function TiposActivosPage() {
+  const { crear, modificar, eliminar } = usePermiso("TiposActivos");
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -27,7 +29,7 @@ export default function TiposActivosPage() {
     setLoading(true);
     try {
       const data = await tiposActivosApi.listar();
-      setItems(Array.isArray(data.datos) ? data.datos : []);
+      setItems(Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : []);
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al cargar." });
     } finally { setLoading(false); }
@@ -39,10 +41,12 @@ export default function TiposActivosPage() {
     setFormLoading(true);
     try {
       if (form?.tipoActivoId) {
-        await tiposActivosApi.actualizar(form.tipoActivoId, valores);
+        const res = await tiposActivosApi.actualizar(form.tipoActivoId, valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo actualizar.");
         setModal({ open: true, variant: "success", message: "Tipo actualizado correctamente." });
       } else {
-        await tiposActivosApi.crear(valores);
+        const res = await tiposActivosApi.crear(valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo crear.");
         setModal({ open: true, variant: "success", message: "Tipo creado correctamente." });
       }
       setForm(null);
@@ -55,7 +59,8 @@ export default function TiposActivosPage() {
   const confirmarEliminar = async () => {
     setConfirm(p => ({ ...p, loading: true }));
     try {
-      await tiposActivosApi.eliminar(confirm.id);
+      const res = await tiposActivosApi.eliminar(confirm.id);
+      if (res?.exito === false) throw new Error(res.mensaje || "No se pudo eliminar.");
       setConfirm({ open: false, id: null, loading: false });
       setModal({ open: true, variant: "success", message: "Tipo eliminado correctamente." });
       cargar();
@@ -80,17 +85,17 @@ export default function TiposActivosPage() {
           placeholder="🔍 Buscar..."
           style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.93rem", minWidth: 200 }}
         />
-        <button onClick={() => setForm({})} style={{
+        {crear && <button onClick={() => setForm({})} style={{
           padding: "9px 20px", borderRadius: 8, background: "#4c7318",
           color: "#fff", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-        }}>+ Nuevo tipo</button>
+        }}>+ Nuevo tipo</button>}
       </div>
 
       <DataTable
         columnas={columnas} datos={filtrados} loading={loading}
         keyField="tipoActivoId" mensajeVacio="No hay tipos de activos registrados."
-        onEdit={t => setForm({ tipoActivoId: t.tipoActivoId, nombre: t.nombre })}
-        onDelete={t => setConfirm({ open: true, id: t.tipoActivoId, loading: false })}
+        onEdit={modificar ? t => setForm({ tipoActivoId: t.tipoActivoId, nombre: t.nombre }) : undefined}
+        onDelete={eliminar ? t => setConfirm({ open: true, id: t.tipoActivoId, loading: false }) : undefined}
       />
 
       {form !== null && (

@@ -6,6 +6,7 @@ import { softwaresApi } from "../../api/administracion.api";
 import DataTable   from "../../components/ui/DataTable";
 import FormModal   from "../../components/ui/FormModal";
 import ModalDialog from "../../components/ui/ModalDialog";
+import { usePermiso } from "../../stores/menuSlice";
 
 const columnas = [
   { key: "softwareId",  label: "ID",          ancho: 70,  render: (s) => `#${s.softwareId}` },
@@ -23,6 +24,7 @@ const FIELDS = [
 ];
 
 export default function SoftwarePage() {
+  const { crear, modificar, eliminar } = usePermiso("Software");
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -35,7 +37,7 @@ export default function SoftwarePage() {
     setLoading(true);
     try {
       const data = await softwaresApi.listar();
-      setItems(Array.isArray(data.datos) ? data.datos : []);
+      setItems(Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : []);
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al listar software." });
     } finally {
@@ -49,10 +51,12 @@ export default function SoftwarePage() {
     setFormLoading(true);
     try {
       if (form?.softwareId) {
-        await softwaresApi.actualizar(form.softwareId, valores);
+        const res = await softwaresApi.actualizar(form.softwareId, valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo actualizar.");
         setModal({ open: true, variant: "success", message: "Software actualizado correctamente." });
       } else {
-        await softwaresApi.crear(valores);
+        const res = await softwaresApi.crear(valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo crear.");
         setModal({ open: true, variant: "success", message: "Software creado correctamente." });
       }
       setForm(null);
@@ -67,7 +71,8 @@ export default function SoftwarePage() {
   const confirmarEliminar = async () => {
     setConfirm(p => ({ ...p, loading: true }));
     try {
-      await softwaresApi.eliminar(confirm.id);
+      const res = await softwaresApi.eliminar(confirm.id);
+      if (res?.exito === false) throw new Error(res.mensaje || "No se pudo eliminar.");
       setConfirm({ open: false, id: null, loading: false });
       setModal({ open: true, variant: "success", message: "Software eliminado correctamente." });
       load();
@@ -100,12 +105,12 @@ export default function SoftwarePage() {
           onChange={e => setBusqueda(e.target.value)}
           style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.95rem", minWidth: 260 }}
         />
-        <button
+        {crear && <button
           onClick={() => setForm({})}
           style={{ padding: "9px 20px", borderRadius: 8, background: "#4c7318", color: "#fff", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", whiteSpace: "nowrap" }}
         >
           + Nuevo software
-        </button>
+        </button>}
       </div>
 
       <DataTable
@@ -114,8 +119,8 @@ export default function SoftwarePage() {
         loading={loading}
         keyField="softwareId"
         mensajeVacio="No hay software registrado. Creá uno para poder asignarlo a equipos."
-        onEdit={s => setForm({ softwareId: s.softwareId, nombre: s.nombre, version: s.version ?? "", tipo: s.tipo ?? "", descripcion: s.descripcion ?? "" })}
-        onDelete={s => setConfirm({ open: true, id: s.softwareId, loading: false })}
+        onEdit={modificar ? s => setForm({ softwareId: s.softwareId, nombre: s.nombre, version: s.version ?? "", tipo: s.tipo ?? "", descripcion: s.descripcion ?? "" }) : undefined}
+        onDelete={eliminar ? s => setConfirm({ open: true, id: s.softwareId, loading: false }) : undefined}
       />
 
       {form !== null && (

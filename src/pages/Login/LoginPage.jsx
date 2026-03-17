@@ -1,11 +1,10 @@
 // src/pages/Login/LoginPage.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../../stores/authSlice";
 import { setMenu } from "../../stores/menuSlice";
 import { authApi } from "../../api/auth.api";
-import { http } from "../../services/http";
 
 const COLOR = { primary: "#4c7318", primaryDark: "#3e5b19" };
 
@@ -35,29 +34,31 @@ export default function LoginPage() {
       // 2. Guardar credenciales en Redux
       dispatch(setCredentials({ accessToken, usuario }));
 
-      // 3. Cargar menús y permisos — usa http.js que ya tiene el Bearer token
-      //    Pasamos el token manualmente porque Redux aún no lo tiene en este momento
+      // 3. Cargar menus y permisos — GET /api/Menu/usuario/{usuarioId}
+      // datos: { menus: [...], permisos: { "Equipos": {leer,...} } }
       try {
-        const menuResult = await fetch(
-          `${import.meta.env.VITE_API_BASE_URI}/api/Menu`,
-          { headers: { Authorization: `Bearer ${accessToken}` }, credentials: "include" }
-        ).then(r => r.json());
+        const menuResult = await authApi.obtenerMenu(usuario.usuarioId, accessToken);
 
-        if (menuResult.exito) {
-          dispatch(setMenu({
-            menus:    menuResult.datos.menus    ?? [],
-            permisos: menuResult.datos.permisos ?? {},
-          }));
+        const menus = menuResult?.datos?.menus ?? [];
+
+        // Normalizar claves a lowercase para usePermiso()
+        const rawPermisos = menuResult?.datos?.permisos ?? {};
+        const permisos = {};
+        for (const [key, val] of Object.entries(rawPermisos)) {
+          permisos[key.toLowerCase()] = val;
         }
+
+        console.log("[Login] Permisos almacenados en Redux:", permisos);
+        dispatch(setMenu({ menus, permisos }));
       } catch {
-        console.warn("[Login] No se pudo cargar el menú — se usará el fallback.");
+        console.warn("[Login] No se pudieron cargar los menus o permisos.");
       }
 
       // 4. Redirigir
       navigate("/", { replace: true });
 
     } catch {
-      setError("Error de conexión. Verificá que el servidor esté activo.");
+      setError("Error de conexion. Verifique que el servidor este activo.");
     } finally {
       setLoading(false);
     }

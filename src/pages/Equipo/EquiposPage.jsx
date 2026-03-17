@@ -6,6 +6,7 @@ import DataTable from "../../components/ui/DataTable";
 import ModalDialog from "../../components/ui/ModalDialog";
 import EquipoForm from "./EquipoForm";        // solo para EDITAR
 import EquipoWizard from "./EquipoWizard";    // para CREAR (wizard)
+import { usePermiso } from "../../stores/menuSlice";
 
 const columnas = [
   { key: "equipoId",          label: "ID",               ancho: 70,  render: (e) => `#${e.equipoId}` },
@@ -40,6 +41,7 @@ function EstadoBadge({ estado }) {
 
 export default function EquiposPage() {
   const navigate = useNavigate();
+  const { crear, modificar, eliminar } = usePermiso("Equipos");
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -57,7 +59,7 @@ export default function EquiposPage() {
     setLoading(true);
     try {
       const data = await equiposApi.listar();
-      setItems(Array.isArray(data.datos) ? data.datos : []);
+      setItems(Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : []);
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al listar equipos." });
     } finally {
@@ -117,17 +119,19 @@ export default function EquiposPage() {
             border: "1px solid #d1d5db", fontSize: "0.95rem", minWidth: 280,
           }}
         />
-        <button
-          onClick={() => setWizardAbierto(true)}
-          style={{
-            padding: "9px 20px", borderRadius: 8,
-            background: "#4c7318", color: "#fff",
-            border: "none", fontWeight: 700,
-            fontSize: "0.95rem", cursor: "pointer", whiteSpace: "nowrap",
-          }}
-        >
-          + Nuevo equipo
-        </button>
+        {crear && (
+          <button
+            onClick={() => setWizardAbierto(true)}
+            style={{
+              padding: "9px 20px", borderRadius: 8,
+              background: "#4c7318", color: "#fff",
+              border: "none", fontWeight: 700,
+              fontSize: "0.95rem", cursor: "pointer", whiteSpace: "nowrap",
+            }}
+          >
+            + Nuevo equipo
+          </button>
+        )}
       </div>
 
       {/* Tabla — ✏️ abre el detalle con pestañas */}
@@ -137,8 +141,8 @@ export default function EquiposPage() {
         loading={loading}
         keyField="equipoId"
         mensajeVacio="No hay equipos registrados."
-        onEdit={e => navigate(`/equipos/${e.equipoId}`)}
-        onDelete={e => setConfirm({ open: true, equipoId: e.equipoId, loading: false })}
+        onEdit={modificar ? e => navigate(`/equipos/${e.equipoId}`) : undefined}
+        onDelete={eliminar ? e => setConfirm({ open: true, equipoId: e.equipoId, loading: false }) : undefined}
       />
 
       {/* Wizard — solo para crear */}

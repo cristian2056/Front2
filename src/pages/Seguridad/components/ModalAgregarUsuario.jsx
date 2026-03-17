@@ -44,7 +44,7 @@ export default function ModalAgregarUsuario({ usuariosActuales, onAgregar, onCer
             ) : disponibles.map(u => (
               <div
                 key={u.usuarioId}
-                onClick={() => onAgregar(u.usuarioId)}
+                onClick={() => onAgregar(u)}
                 style={{
                   padding: "10px 14px", borderRadius: 9, cursor: "pointer",
                   border: `1.5px solid ${C.gray200}`, background: C.white,

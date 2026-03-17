@@ -105,7 +105,7 @@ function FormComposicion({ initial = FORM_VACIO, onGuardar, onCancelar, loading 
 }
 
 // ─── Tab principal ─────────────────────────────────────────────────────────────
-export default function TabComponentes({ equipoId }) {
+export default function TabComponentes({ equipoId, crear, modificar, eliminar }) {
   const [lista,       setLista]       = useState([]);
   const [catalogo,    setCatalogo]    = useState([]); // catálogo global de tipos de componente
   const [loading,     setLoading]     = useState(true);
@@ -211,7 +211,7 @@ export default function TabComponentes({ equipoId }) {
     <div>
       <ErrorBanner mensaje={error} />
 
-      {!mostrarForm && (
+      {!mostrarForm && crear && (
         <div style={{ marginBottom: 16 }}>
           <button onClick={() => setMostrarForm(true)}
             style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#4c7318", color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
@@ -258,9 +258,11 @@ export default function TabComponentes({ equipoId }) {
                 <EstadoBadge estado={comp.estado} tipo="componente" />
 
                 <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                  <button onClick={() => { setEditando(comp); setMostrarForm(true); }}
-                    style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.85rem" }}>✏️</button>
-                  {confirmElim === comp.composicionId ? (
+                  {modificar && (
+                    <button onClick={() => { setEditando(comp); setMostrarForm(true); }}
+                      style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.85rem" }}>✏️</button>
+                  )}
+                  {eliminar && (confirmElim === comp.composicionId ? (
                     <ConfirmInline
                       onConfirmar={() => handleEliminar(comp.composicionId)}
                       onCancelar={() => setConfirmElim(null)}
@@ -268,7 +270,7 @@ export default function TabComponentes({ equipoId }) {
                   ) : (
                     <button onClick={() => setConfirmElim(comp.composicionId)}
                       style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #fca5a5", background: "#fff", cursor: "pointer", color: "#dc2626", fontSize: "0.85rem" }}>🗑️</button>
-                  )}
+                  ))}
                 </div>
               </div>
             );

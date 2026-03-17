@@ -58,7 +58,7 @@ function FormSoftware({ initial = FORM_VACIO, onGuardar, onCancelar, loading }) 
 }
 
 // ─── Tab principal ─────────────────────────────────────────────────────────────
-export default function TabSoftware({ equipoId }) {
+export default function TabSoftware({ equipoId, crear, modificar, eliminar }) {
   const [lista,       setLista]       = useState([]);
   const [catalogo,    setCatalogo]    = useState([]); // catálogo global de software
   const [loading,     setLoading]     = useState(true);
@@ -142,7 +142,7 @@ export default function TabSoftware({ equipoId }) {
     <div>
       <ErrorBanner mensaje={error} />
 
-      {!mostrarForm && (
+      {!mostrarForm && crear && (
         <div style={{ marginBottom: 16 }}>
           <button onClick={() => setMostrarForm(true)}
             style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#4c7318", color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
@@ -186,9 +186,11 @@ export default function TabSoftware({ equipoId }) {
                 </div>
 
                 <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                  <button onClick={() => { setEditando(sw); setMostrarForm(true); }}
-                    style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.85rem" }}>✏️</button>
-                  {confirmElim === sw.equipoSoftwareId ? (
+                  {modificar && (
+                    <button onClick={() => { setEditando(sw); setMostrarForm(true); }}
+                      style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.85rem" }}>✏️</button>
+                  )}
+                  {eliminar && (confirmElim === sw.equipoSoftwareId ? (
                     <ConfirmInline
                       onConfirmar={() => handleEliminar(sw.equipoSoftwareId)}
                       onCancelar={() => setConfirmElim(null)}
@@ -196,7 +198,7 @@ export default function TabSoftware({ equipoId }) {
                   ) : (
                     <button onClick={() => setConfirmElim(sw.equipoSoftwareId)}
                       style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #fca5a5", background: "#fff", cursor: "pointer", color: "#dc2626", fontSize: "0.85rem" }}>🗑️</button>
-                  )}
+                  ))}
                 </div>
               </div>
             );

@@ -30,10 +30,8 @@ export const rolMenuApi = {
   quitar:       (id)    => http(`/api/RolMenu/${id}`, { method: "DELETE"       }),
 };
 
-// Endpoints /api/UsuarioRoles (plural) — consistente con personal.api.js
+// Un usuario tiene UN solo rol (FK directo en tabla Usuarios)
 export const rolUsuariosApi = {
-  listarPorRol: (rolId)        => http(`/api/UsuarioRoles/rol/${rolId}`),
-  asignar:      (body)         => http("/api/UsuarioRoles",                 { method: "POST",   body }),
-  quitar:       (uId, rolId)   => http(`/api/UsuarioRoles/${uId}/${rolId}`, { method: "DELETE"       }),
-  listarTodos:  ()             => http("/api/Usuarios"),
+  listarTodos:  ()                  => http("/api/Usuarios"),
+  cambiarRol:   (usuarioId, body)   => http(`/api/Usuarios/${usuarioId}`, { method: "PUT", body }),
 };

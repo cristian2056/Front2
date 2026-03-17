@@ -67,7 +67,7 @@ function FormRed({ equipoId, initial = FORM_VACIO, onGuardar, onCancelar, loadin
 }
 
 // ─── Tab principal ─────────────────────────────────────────────────────────────
-export default function TabRed({ equipoId }) {
+export default function TabRed({ equipoId, crear, modificar, eliminar }) {
   const [lista,       setLista]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState("");
@@ -80,7 +80,7 @@ export default function TabRed({ equipoId }) {
     setLoading(true); setError("");
     try {
       const data = await equipoRedApi.listar();
-      const todas = Array.isArray(data.datos) ? data.datos : [];
+      const todas = Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : [];
       setLista(todas.filter(r => String(r.equipoId) === String(equipoId)));
     } catch (e) {
       setError(e.message || "Error al cargar configuración de red.");
@@ -124,7 +124,7 @@ export default function TabRed({ equipoId }) {
     <div>
       <ErrorBanner mensaje={error} />
 
-      {!mostrarForm && (
+      {!mostrarForm && crear && (
         <div style={{ marginBottom: 16 }}>
           <button onClick={() => setMostrarForm(true)}
             style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#4c7318", color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
@@ -177,9 +177,11 @@ export default function TabRed({ equipoId }) {
               </div>
 
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button onClick={() => { setEditando(red); setMostrarForm(true); }}
-                  style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.85rem" }}>✏️</button>
-                {confirmElim === red.equipoRedId ? (
+                {modificar && (
+                  <button onClick={() => { setEditando(red); setMostrarForm(true); }}
+                    style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.85rem" }}>✏️</button>
+                )}
+                {eliminar && (confirmElim === red.equipoRedId ? (
                   <ConfirmInline
                     onConfirmar={() => handleEliminar(red.equipoRedId)}
                     onCancelar={() => setConfirmElim(null)}
@@ -187,7 +189,7 @@ export default function TabRed({ equipoId }) {
                 ) : (
                   <button onClick={() => setConfirmElim(red.equipoRedId)}
                     style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #fca5a5", background: "#fff", cursor: "pointer", color: "#dc2626", fontSize: "0.85rem" }}>🗑️</button>
-                )}
+                ))}
               </div>
             </div>
           ))}

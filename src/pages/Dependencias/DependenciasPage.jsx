@@ -4,6 +4,7 @@ import { dependenciasApi } from "../../api/administracion.api";
 import DataTable  from "../../components/ui/DataTable";
 import ModalDialog from "../../components/ui/ModalDialog";
 import FormModal   from "../../components/ui/FormModal";
+import { usePermiso } from "../../stores/menuSlice";
 
 const TIPOS = ["Gerencia", "Sub-gerencia", "Dirección", "Departamento", "Área", "Unidad", "Oficina"];
 
@@ -58,6 +59,7 @@ const columnas = [
 ];
 
 export default function DependenciasPage() {
+  const { crear, modificar, eliminar } = usePermiso("Dependencias");
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -70,7 +72,7 @@ export default function DependenciasPage() {
     setLoading(true);
     try {
       const data = await dependenciasApi.listar();
-      setItems(Array.isArray(data.datos) ? data.datos : []);
+      setItems(Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : []);
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al cargar." });
     } finally { setLoading(false); }
@@ -82,10 +84,12 @@ export default function DependenciasPage() {
     setFormLoading(true);
     try {
       if (form?.dependenciaId) {
-        await dependenciasApi.actualizar(form.dependenciaId, valores);
+        const res = await dependenciasApi.actualizar(form.dependenciaId, valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo actualizar.");
         setModal({ open: true, variant: "success", message: "Dependencia actualizada correctamente." });
       } else {
-        await dependenciasApi.crear(valores);
+        const res = await dependenciasApi.crear(valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo crear.");
         setModal({ open: true, variant: "success", message: "Dependencia creada correctamente." });
       }
       setForm(null);
@@ -98,7 +102,8 @@ export default function DependenciasPage() {
   const confirmarEliminar = async () => {
     setConfirm(p => ({ ...p, loading: true }));
     try {
-      await dependenciasApi.eliminar(confirm.id);
+      const res = await dependenciasApi.eliminar(confirm.id);
+      if (res?.exito === false) throw new Error(res.mensaje || "No se pudo eliminar.");
       setConfirm({ open: false, id: null, loading: false });
       setModal({ open: true, variant: "success", message: "Dependencia eliminada correctamente." });
       cargar();
@@ -124,17 +129,17 @@ export default function DependenciasPage() {
           placeholder="🔍 Buscar por nombre o tipo..."
           style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.93rem", minWidth: 240 }}
         />
-        <button onClick={() => setForm({})} style={{
+        {crear && <button onClick={() => setForm({})} style={{
           padding: "9px 20px", borderRadius: 8, background: "#4c7318",
           color: "#fff", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-        }}>+ Nueva dependencia</button>
+        }}>+ Nueva dependencia</button>}
       </div>
 
       <DataTable
         columnas={columnas} datos={filtrados} loading={loading}
         keyField="dependenciaId" mensajeVacio="No hay dependencias registradas."
-        onEdit={d => setForm({ ...d })}
-        onDelete={d => setConfirm({ open: true, id: d.dependenciaId, loading: false })}
+        onEdit={modificar ? d => setForm({ ...d }) : undefined}
+        onDelete={eliminar ? d => setConfirm({ open: true, id: d.dependenciaId, loading: false }) : undefined}
       />
 
       {form !== null && (

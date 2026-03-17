@@ -1,16 +1,17 @@
 // src/pages/Seguridad/RolesPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
-import { C, ACCIONES, btnSt } from "./constants";
+import { C, btnSt } from "./constants";
 import { rolesApi, objetosApi, menuApi, rolObjetosApi, rolMenuApi, rolUsuariosApi } from "../../api/roles.api";
+import { usePermiso } from "../../stores/menuSlice";
 
-import Spinner              from "../../components/ui/Spinner";
-import RolLista             from "./components/RolLista";
-import TabObjetos           from "./components/TabObjetos";
-import TabMenus             from "./components/TabMenus";
-import TabUsuarios          from "./components/TabUsuarios";
-import ModalRol             from "./components/ModalRol";
-import ModalAgregarUsuario  from "./components/ModalAgregarUsuario";
-import ModalDialog          from "../../components/ui/ModalDialog";
+import Spinner             from "../../components/ui/Spinner";
+import RolLista            from "./components/RolLista";
+import TabObjetos          from "./components/TabObjetos";
+import TabMenus            from "./components/TabMenus";
+import TabUsuarios         from "./components/TabUsuarios";
+import ModalRol            from "./components/ModalRol";
+import ModalAgregarUsuario from "./components/ModalAgregarUsuario";
+import ModalDialog         from "../../components/ui/ModalDialog";
 
 const TABS = [
   { key: "objetos",  label: "🔐 Permisos" },
@@ -19,6 +20,8 @@ const TABS = [
 ];
 
 export default function RolesPage() {
+  const { crear, modificar, eliminar } = usePermiso("Roles");
+
   const [roles,       setRoles]       = useState([]);
   const [objetos,     setObjetos]     = useState([]);
   const [menus,       setMenus]       = useState([]);
@@ -32,22 +35,35 @@ export default function RolesPage() {
   const [loadingRol,  setLoadingRol]  = useState(false);
 
   const [tab,       setTab]       = useState("objetos");
-  const [modalRol,  setModalRol]  = useState(null);   // null=cerrado | "nuevo" | {...rol}
+  const [modalRol,  setModalRol]  = useState(null);
   const [modalUsu,  setModalUsu]  = useState(false);
   const [confirmEl, setConfirmEl] = useState(null);
   const [guardando, setGuardando] = useState(false);
+
+  // Convierte la estructura anidada { menuId, subMenus:[] } en lista plana con menuPadreId
+  const aplanarMenus = (items, padreId = null) => {
+    const result = [];
+    for (const m of items) {
+      result.push({ menuId: m.menuId, nombre: m.nombre, url: m.url, orden: m.orden, menuPadreId: padreId });
+      if (m.subMenus?.length) result.push(...aplanarMenus(m.subMenus, m.menuId));
+    }
+    return result;
+  };
 
   // ── Carga inicial ─────────────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       rolesApi.listar(),
       objetosApi.listar(),
-      menuApi.listar().catch(() => ({ datos: [] })),
+      menuApi.listar().catch((e) => { console.error("[RolesPage] GET /api/Menu falló:", e); return { datos: { menus: [] } }; }),
     ]).then(([rR, rO, rM]) => {
       const toArr = (v) => Array.isArray(v) ? v : [];
+      console.log("[RolesPage] rM.datos?.menus:", rM.datos?.menus);
+      const menuPlano = aplanarMenus(toArr(rM.datos?.menus));
+      console.log("[RolesPage] menuPlano result:", menuPlano.length, menuPlano);
       setRoles(toArr(rR.datos));
       setObjetos(toArr(rO.datos));
-      setMenus(toArr(rM.datos));
+      setMenus(menuPlano);
     }).catch(e => setError(e.message || "Error al cargar."))
       .finally(() => setLoading(false));
   }, []);
@@ -56,16 +72,15 @@ export default function RolesPage() {
   const cargarRol = useCallback(async (id) => {
     setLoadingRol(true);
     try {
-      const [rObj, rUsu] = await Promise.all([
+      const [rObj, rM, rTodos] = await Promise.all([
         rolObjetosApi.listarPorRol(id),
-        rolUsuariosApi.listarPorRol(id).catch(() => ({ datos: [] })),
+        rolMenuApi.listarPorRol(id).catch(() => ({ datos: [] })),
+        rolUsuariosApi.listarTodos().catch(() => ({ datos: [] })),
       ]);
-      setRolObjetos(rObj.datos  ?? []);
-      setRolUsuarios(rUsu.datos ?? []);
-      try {
-        const rM = await rolMenuApi.listarPorRol(id);
-        setRolMenus(rM.datos ?? []);
-      } catch { setRolMenus([]); }
+      setRolObjetos(rObj.datos ?? []);
+      setRolMenus(rM.datos     ?? []);
+      // Filtrar usuarios que tienen este rol
+      setRolUsuarios((rTodos.datos ?? []).filter(u => u.rolId === id));
     } catch (e) {
       setError(e.message || "Error al cargar rol.");
     } finally {
@@ -83,7 +98,7 @@ export default function RolesPage() {
   const rolActivo = roles.find(r => r.rolId === rolId) ?? null;
   const getRO     = (objetoId) => rolObjetos.find(ro => ro.objetoId === objetoId) ?? null;
 
-  // ── Handlers: permisos por objeto ─────────────────────────────────────────
+  // ── Handler: toggle permiso individual ───────────────────────────────────
   const handleTogglePerm = async (objetoId, accion) => {
     const ro = getRO(objetoId);
     try {
@@ -92,9 +107,9 @@ export default function RolesPage() {
         const res  = await rolObjetosApi.asignar(body);
         setRolObjetos(prev => [...prev, res.datos ?? { ...body, rolObjetoId: Date.now() }]);
       } else {
-        const nuevo        = !ro[accion];
-        const body         = { ...ro, [accion]: nuevo };
-        const todosEnFalse = ACCIONES.every(a => a.key === accion ? !nuevo : !ro[a.key]);
+        const nuevo = !ro[accion];
+        const body  = { ...ro, [accion]: nuevo };
+        const todosEnFalse = !body.leer && !body.crear && !body.modificar && !body.eliminar;
         if (todosEnFalse) {
           await rolObjetosApi.quitar(ro.rolObjetoId);
           setRolObjetos(prev => prev.filter(x => x.rolObjetoId !== ro.rolObjetoId));
@@ -106,11 +121,12 @@ export default function RolesPage() {
     } catch (e) { setError(e.message); }
   };
 
+  // ── Handler: activar / desactivar acceso completo a un objeto ─────────────
   const handleToggleFila = async (objetoId) => {
     const ro = getRO(objetoId);
-    const todosOn = ro && ACCIONES.every(a => ro[a.key]);
+    const tieneAcceso = ro && (ro.leer || ro.crear || ro.modificar || ro.eliminar);
     try {
-      if (todosOn) {
+      if (tieneAcceso) {
         await rolObjetosApi.quitar(ro.rolObjetoId);
         setRolObjetos(prev => prev.filter(x => x.rolObjetoId !== ro.rolObjetoId));
       } else if (!ro) {
@@ -141,19 +157,17 @@ export default function RolesPage() {
     } catch (e) { setError(e.message); }
   };
 
-  // ── Handlers: usuarios ────────────────────────────────────────────────────
-  const handleQuitarUsuario = async (usuarioId) => {
+  // ── Handlers: usuarios (sistema de un solo rol por usuario) ──────────────
+  const handleAgregarUsuario = async (usuario) => {
     try {
-      await rolUsuariosApi.quitar(usuarioId, rolId);
-      setRolUsuarios(prev => prev.filter(u => u.usuarioId !== usuarioId));
-    } catch (e) { setError(e.message); }
-  };
-
-  const handleAgregarUsuario = async (usuarioId) => {
-    try {
-      await rolUsuariosApi.asignar({ usuarioId, rolId });
-      const r = await rolUsuariosApi.listarPorRol(rolId);
-      setRolUsuarios(r.datos ?? []);
+      await rolUsuariosApi.cambiarRol(usuario.usuarioId, {
+        userName:      usuario.userName,
+        dependenciaId: usuario.dependenciaId,
+        activo:        usuario.activo ?? true,
+        rolId,
+      });
+      const r = await rolUsuariosApi.listarTodos();
+      setRolUsuarios((r.datos ?? []).filter(u => u.rolId === rolId));
       setModalUsu(false);
     } catch (e) { setError(e.message); }
   };
@@ -205,17 +219,19 @@ export default function RolesPage() {
         <div>
           <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 800, color: C.gray900 }}>🎭 Gestión de Roles</h2>
           <p style={{ margin: "4px 0 0", color: C.gray400, fontSize: "0.87rem" }}>
-            Creá roles, asigná usuarios y configurá permisos por objeto y menú
+            Creá roles, asigná usuarios y configurá permisos por objeto
           </p>
         </div>
-        <button
-          onClick={() => setModalRol("nuevo")}
-          style={btnSt({ background: C.primary, color: C.white, padding: "10px 20px" })}
-          onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
-          onMouseLeave={e => e.currentTarget.style.background = C.primary}
-        >
-          ＋ Nuevo rol
-        </button>
+        {crear && (
+          <button
+            onClick={() => setModalRol("nuevo")}
+            style={btnSt({ background: C.primary, color: C.white, padding: "10px 20px" })}
+            onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
+            onMouseLeave={e => e.currentTarget.style.background = C.primary}
+          >
+            ＋ Nuevo rol
+          </button>
+        )}
       </div>
 
       {/* Layout principal */}
@@ -223,8 +239,8 @@ export default function RolesPage() {
         <RolLista
           roles={roles} rolId={rolId}
           onSelect={handleSelRol}
-          onEditar={rol => setModalRol(rol)}
-          onEliminar={id => setConfirmEl(id)}
+          onEditar={modificar ? rol => setModalRol(rol) : undefined}
+          onEliminar={eliminar ? id => setConfirmEl(id) : undefined}
         />
 
         {/* Panel derecho */}
@@ -276,7 +292,7 @@ export default function RolesPage() {
                 <>
                   {tab === "objetos"  && <TabObjetos objetos={objetos} getRO={getRO} onTogglePerm={handleTogglePerm} onToggleFila={handleToggleFila} />}
                   {tab === "menus"    && <TabMenus menus={menus} menuAcceso={menuAcceso} onToggle={handleToggleMenu} />}
-                  {tab === "usuarios" && <TabUsuarios usuarios={rolUsuarios} onQuitar={handleQuitarUsuario} onAbrirModal={() => setModalUsu(true)} />}
+                  {tab === "usuarios" && <TabUsuarios usuarios={rolUsuarios} onAbrirModal={() => setModalUsu(true)} />}
                 </>
               )}
             </div>

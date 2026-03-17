@@ -290,11 +290,11 @@ function PasoDetalle({ paso, equipoId, onSiguiente, onAnterior, esFinal }) {
     <div>
       {/* Contenido del paso */}
       <div style={{ minHeight: 200 }}>
-        {paso === 2 && <TabComponentes equipoId={equipoId} />}
-        {paso === 3 && <TabSoftware    equipoId={equipoId} />}
-        {paso === 4 && <TabRed         equipoId={equipoId} />}
-        {paso === 5 && <TabFotos       equipoId={equipoId} />}
-        {paso === 6 && <TabAsignacion  equipoId={equipoId} />}
+        {paso === 2 && <TabComponentes equipoId={equipoId} crear modificar eliminar />}
+        {paso === 3 && <TabSoftware    equipoId={equipoId} crear modificar eliminar />}
+        {paso === 4 && <TabRed         equipoId={equipoId} crear modificar eliminar />}
+        {paso === 5 && <TabFotos       equipoId={equipoId} crear eliminar />}
+        {paso === 6 && <TabAsignacion  equipoId={equipoId} crear modificar eliminar />}
       </div>
 
       {/* Navegación */}

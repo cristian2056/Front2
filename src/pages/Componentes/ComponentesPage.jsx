@@ -6,6 +6,7 @@ import { componentesApi } from "../../api/componentes.api";
 import DataTable  from "../../components/ui/DataTable";
 import FormModal  from "../../components/ui/FormModal";
 import ModalDialog from "../../components/ui/ModalDialog";
+import { usePermiso } from "../../stores/menuSlice";
 
 const columnas = [
   { key: "componenteId", label: "ID",          ancho: 70,  render: (c) => `#${c.componenteId}` },
@@ -19,6 +20,7 @@ const FIELDS = [
 ];
 
 export default function ComponentesPage() {
+  const { crear, modificar, eliminar } = usePermiso("Componentes");
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -31,7 +33,7 @@ export default function ComponentesPage() {
     setLoading(true);
     try {
       const data = await componentesApi.listar();
-      setItems(Array.isArray(data.datos) ? data.datos : []);
+      setItems(Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : []);
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al listar componentes." });
     } finally {
@@ -45,10 +47,12 @@ export default function ComponentesPage() {
     setFormLoading(true);
     try {
       if (form?.componenteId) {
-        await componentesApi.actualizar(form.componenteId, valores);
+        const res = await componentesApi.actualizar(form.componenteId, valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo actualizar.");
         setModal({ open: true, variant: "success", message: "Componente actualizado correctamente." });
       } else {
-        await componentesApi.crear(valores);
+        const res = await componentesApi.crear(valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo crear.");
         setModal({ open: true, variant: "success", message: "Componente creado correctamente." });
       }
       setForm(null);
@@ -63,7 +67,8 @@ export default function ComponentesPage() {
   const confirmarEliminar = async () => {
     setConfirm(p => ({ ...p, loading: true }));
     try {
-      await componentesApi.eliminar(confirm.id);
+      const res = await componentesApi.eliminar(confirm.id);
+      if (res?.exito === false) throw new Error(res.mensaje || "No se pudo eliminar.");
       setConfirm({ open: false, id: null, loading: false });
       setModal({ open: true, variant: "success", message: "Componente eliminado correctamente." });
       load();
@@ -95,12 +100,12 @@ export default function ComponentesPage() {
           onChange={e => setBusqueda(e.target.value)}
           style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.95rem", minWidth: 220 }}
         />
-        <button
+        {crear && <button
           onClick={() => setForm({})}
           style={{ padding: "9px 20px", borderRadius: 8, background: "#4c7318", color: "#fff", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", whiteSpace: "nowrap" }}
         >
           + Nuevo componente
-        </button>
+        </button>}
       </div>
 
       <DataTable
@@ -109,8 +114,8 @@ export default function ComponentesPage() {
         loading={loading}
         keyField="componenteId"
         mensajeVacio="No hay componentes registrados. Creá uno para poder asignarlo a equipos."
-        onEdit={c => setForm({ componenteId: c.componenteId, nombre: c.nombre, descripcion: c.descripcion ?? "" })}
-        onDelete={c => setConfirm({ open: true, id: c.componenteId, loading: false })}
+        onEdit={modificar ? c => setForm({ componenteId: c.componenteId, nombre: c.nombre, descripcion: c.descripcion ?? "" }) : undefined}
+        onDelete={eliminar ? c => setConfirm({ open: true, id: c.componenteId, loading: false }) : undefined}
       />
 
       {form !== null && (

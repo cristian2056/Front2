@@ -1,98 +1,99 @@
 // src/pages/Personal/RolesModal.jsx
+// Selector de UN solo rol por usuario (nuevo sistema)
 import React, { useEffect, useState } from "react";
 import { personalApi } from "../../api/personal.api";
+import { http } from "../../services/http";
 
 export default function RolesModal({ persona, onClose }) {
-  // persona  → { personaId, nombres, usuario: { usuarioId, roles: [...] } }
-  const [todosLosRoles, setTodosLosRoles] = useState([]);
-  const [rolesActivos,  setRolesActivos]  = useState(
-    new Set((persona.usuario?.roles ?? []).map(r => r.rolId))
-  );
-  const [loading, setLoading] = useState(false);
-  const [msg,     setMsg]     = useState("");
+  const usuario = persona.usuario;
+  const [roles,     setRoles]     = useState([]);
+  const [rolId,     setRolId]     = useState(usuario?.rolId ?? "");
+  const [loading,   setLoading]   = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [msg,       setMsg]       = useState("");
 
   useEffect(() => {
     personalApi.listarRoles()
-      .then(r => setTodosLosRoles(Array.isArray(r.datos) ? r.datos : []))
-      .catch(() => setMsg("No se pudieron cargar los roles."));
+      .then(r => setRoles(Array.isArray(r.datos) ? r.datos : []))
+      .catch(() => setMsg("No se pudieron cargar los roles."))
+      .finally(() => setLoading(false));
   }, []);
 
-  const toggleRol = async (rolId) => {
-    const usuarioId = persona.usuario.usuarioId;
-    setLoading(true);
+  const handleGuardar = async () => {
+    if (!rolId) { setMsg("Seleccioná un rol."); return; }
+    setGuardando(true);
     setMsg("");
     try {
-      if (rolesActivos.has(rolId)) {
-        await personalApi.quitarRol(usuarioId, rolId);
-        setRolesActivos(p => { const s = new Set(p); s.delete(rolId); return s; });
-      } else {
-        await personalApi.asignarRol({ usuarioId, rolId });
-        setRolesActivos(p => new Set([...p, rolId]));
-      }
+      await http(`/api/Usuarios/${usuario.usuarioId}`, {
+        method: "PUT",
+        body: {
+          userName:      usuario.userName,
+          dependenciaId: usuario.dependenciaId,
+          activo:        usuario.activo ?? true,
+          rolId:         Number(rolId),
+        },
+      });
+      onClose();
     } catch (e) {
-      setMsg(e.message || "Error al actualizar roles.");
+      setMsg(e.message || "Error al actualizar rol.");
     } finally {
-      setLoading(false);
+      setGuardando(false);
     }
   };
 
-  // ── Estilos ──────────────────────────────────────────────
   const overlay = {
     position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
     display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100,
   };
   const box = {
     background: "#fff", borderRadius: 14, padding: "28px 32px",
-    width: "100%", maxWidth: 460, boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+    width: "100%", maxWidth: 420, boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
   };
 
   return (
     <div style={overlay}>
       <div style={box}>
-        <h3 style={{ margin: "0 0 6px", color: "#111827" }}>🔐 Asignar roles</h3>
+        <h3 style={{ margin: "0 0 6px", color: "#111827" }}>🔐 Asignar rol</h3>
         <p style={{ margin: "0 0 20px", color: "#6b7280", fontSize: "0.9rem" }}>
-          {persona.nombres} — usuario: <strong>{persona.usuario?.userName}</strong>
+          {persona.nombres} — usuario: <strong>{usuario?.userName}</strong>
         </p>
 
-        {todosLosRoles.length === 0 && !msg && (
+        {loading ? (
           <p style={{ color: "#9ca3af" }}>Cargando roles...</p>
+        ) : (
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontWeight: 600, marginBottom: 6, color: "#374151", fontSize: "0.88rem" }}>
+              Rol *
+            </label>
+            <select
+              value={rolId}
+              onChange={e => setRolId(e.target.value)}
+              style={{
+                width: "100%", padding: "9px 12px", borderRadius: 8,
+                border: "1.5px solid #d1d5db", fontSize: "0.95rem",
+                background: "#fff", cursor: "pointer",
+              }}
+            >
+              <option value="">Seleccione un rol...</option>
+              {roles.map(r => (
+                <option key={r.rolId} value={r.rolId}>{r.nombre}</option>
+              ))}
+            </select>
+          </div>
         )}
 
-        {todosLosRoles.map(rol => {
-          const activo = rolesActivos.has(rol.rolId);
-          return (
-            <label key={rol.rolId}
-              style={{ display: "flex", alignItems: "center", gap: 12,
-                padding: "10px 14px", borderRadius: 8, marginBottom: 8,
-                background: activo ? "#f0fdf4" : "#f9fafb",
-                border: `1px solid ${activo ? "#86efac" : "#e5e7eb"}`,
-                cursor: loading ? "not-allowed" : "pointer", userSelect: "none",
-              }}>
-              <input
-                type="checkbox"
-                checked={activo}
-                disabled={loading}
-                onChange={() => toggleRol(rol.rolId)}
-                style={{ width: 18, height: 18, cursor: "pointer" }}
-              />
-              <div>
-                <div style={{ fontWeight: 600, color: "#111827" }}>{rol.nombre}</div>
-                {rol.descripcion && (
-                  <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>{rol.descripcion}</div>
-                )}
-              </div>
-              {activo && <span style={{ marginLeft: "auto", color: "#16a34a", fontWeight: 700 }}>✓</span>}
-            </label>
-          );
-        })}
+        {msg && <p style={{ color: "#dc2626", fontSize: "0.88rem", marginBottom: 12 }}>{msg}</p>}
 
-        {msg && <p style={{ color: "#dc2626", fontSize: "0.88rem", marginTop: 8 }}>{msg}</p>}
-
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
-          <button onClick={onClose}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+          <button onClick={onClose} disabled={guardando}
+            style={{ padding: "9px 22px", borderRadius: 8, border: "1px solid #d1d5db",
+              background: "#fff", cursor: "pointer", fontWeight: 600 }}>
+            Cancelar
+          </button>
+          <button onClick={handleGuardar} disabled={guardando || loading}
             style={{ padding: "9px 24px", borderRadius: 8, border: "none",
               background: "#4c7318", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
-            Listo
+            {guardando ? "Guardando..." : "Guardar"}
           </button>
         </div>
       </div>

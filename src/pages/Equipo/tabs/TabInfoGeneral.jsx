@@ -9,7 +9,7 @@ import EstadoBadge  from "../../../components/ui/EstadoBadge";
 import CampoLectura from "../../../components/ui/CampoLectura";
 import ErrorBanner  from "../../../components/ui/ErrorBanner";
 
-export default function TabInfoGeneral({ equipo, equipoId, onActualizado }) {
+export default function TabInfoGeneral({ equipo, equipoId, onActualizado, modificar }) {
   const [marcas,      setMarcas]      = useState([]);
   const [tiposActivo, setTiposActivo] = useState([]);
   const [proveedores, setProveedores] = useState([]);
@@ -52,12 +52,14 @@ export default function TabInfoGeneral({ equipo, equipoId, onActualizado }) {
       <ErrorBanner mensaje={error} />
 
       {/* Botón editar */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <button onClick={() => setEditando(true)}
-          style={{ padding: "8px 18px", borderRadius: 8, border: "1.5px solid #4c7318", background: "#f0fdf4", color: "#4c7318", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
-          ✏️ Editar datos
-        </button>
-      </div>
+      {modificar && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+          <button onClick={() => setEditando(true)}
+            style={{ padding: "8px 18px", borderRadius: 8, border: "1.5px solid #4c7318", background: "#f0fdf4", color: "#4c7318", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+            ✏️ Editar datos
+          </button>
+        </div>
+      )}
 
       {/* Grilla de campos */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0 24px" }}>

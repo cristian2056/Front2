@@ -1,11 +1,12 @@
 // src/pages/Seguridad/UsuariosPage.jsx
 // Reutiliza PersonaForm, RolesModal, ModalDialog y DataTable del módulo Personal
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { personalApi }  from "../../api/personal.api";
 import PersonaForm      from "../Personal/PersonaForm";
 import RolesModal       from "../Personal/RolesModal";
 import ModalDialog      from "../../components/ui/ModalDialog";
 import DataTable        from "../../components/ui/DataTable";
+import { usePermiso } from "../../stores/menuSlice";
 
 // ─── Columnas de la tabla ─────────────────────────────────────────────────────
 const columnas = [
@@ -26,18 +27,12 @@ const columnas = [
       : <span style={{ color: "#d1d5db", fontSize: "0.82rem" }}>Sin usuario</span>,
   },
   {
-    key: "tipo", label: "Tipo", ancho: 110,
-    render: (p) => p.usuario
-      ? <span style={{ background: "#fef9c3", color: "#a16207", borderRadius: 20, padding: "2px 10px", fontWeight: 700, fontSize: "0.82rem" }}>
-          {p.usuario.tipoUsuario}
+    key: "rol", label: "Rol", ancho: 150,
+    render: (p) => p.usuario?.rolNombre
+      ? <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 20, padding: "2px 10px", fontWeight: 700, fontSize: "0.82rem" }}>
+          {p.usuario.rolNombre}
         </span>
-      : null,
-  },
-  {
-    key: "roles", label: "Roles", ancho: 180,
-    render: (p) => p.usuario?.roles?.length > 0
-      ? p.usuario.roles.join(", ")
-      : <span style={{ color: "#d1d5db", fontSize: "0.82rem" }}>Sin roles</span>,
+      : <span style={{ color: "#d1d5db", fontSize: "0.82rem" }}>Sin rol</span>,
   },
   {
     key: "activo", label: "Estado", ancho: 90,
@@ -55,6 +50,7 @@ const columnas = [
 
 // ─── Página ───────────────────────────────────────────────────────────────────
 export default function UsuariosPage() {
+  const { crear, modificar, eliminar } = usePermiso("Usuarios");
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -69,7 +65,7 @@ export default function UsuariosPage() {
     setLoading(true);
     try {
       const data = await personalApi.listarPersonas();
-      const todos = Array.isArray(data.datos) ? data.datos : [];
+      const todos = Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : [];
       setItems(todos.filter(p => p.usuario)); // solo los que tienen acceso al sistema
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al cargar usuarios." });
@@ -86,7 +82,7 @@ export default function UsuariosPage() {
     try {
       if (form?.personaId) {
         // Editar persona existente
-        await personalApi.actualizarPersona(form.personaId, {
+        const res = await personalApi.actualizarPersona(form.personaId, {
           tipoDocumento:    valores.tipoDocumento,
           numeroDocumento:  valores.numeroDocumento,
           nombres:          valores.nombres,
@@ -97,6 +93,7 @@ export default function UsuariosPage() {
           telefono:         valores.telefono,
           direccion:        valores.direccion,
         });
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo actualizar.");
         setModal({ open: true, variant: "success", message: "Usuario actualizado correctamente." });
       } else {
         // Nueva persona
@@ -112,20 +109,21 @@ export default function UsuariosPage() {
           direccion:        valores.direccion,
           activo:           true,
         });
+        if (respPersona?.exito === false) throw new Error(respPersona.mensaje || "No se pudo crear la persona.");
 
         // Crear usuario si marcó el checkbox
         if (valores.crearUsuario && valores.userName && valores.password) {
-          const personaId = respPersona.datos?.personaId;
-          const nombreCompleto = `${valores.nombres} ${valores.apellidosPaterno} ${valores.apellidosMaterno}`.trim();
-          await personalApi.crearUsuario({
+          const personaId = respPersona.datos?.personaId ?? respPersona.datos?.id;
+          if (!personaId) throw new Error("No se pudo obtener el ID de la persona creada.");
+          const resU = await personalApi.crearUsuario({
             personaId,
-            userName:       valores.userName,
-            password:       valores.password,
-            tipoUsuario:    valores.tipoUsuario,
-            nombreCompleto,
-            activo:         true,
-            roles:          [],
+            dependenciaId: Number(valores.dependenciaId) || null,
+            rolId:         Number(valores.rolId) || null,
+            userName:      valores.userName,
+            password:      valores.password,
+            activo:        true,
           });
+          if (resU?.exito === false) throw new Error(resU.mensaje || "No se pudo crear el usuario.");
           setModal({ open: true, variant: "success", message: "Persona y usuario creados correctamente." });
         } else {
           setModal({ open: true, variant: "success", message: "Persona creada. No se creó usuario." });
@@ -156,7 +154,7 @@ export default function UsuariosPage() {
 
   // ── Filtro ────────────────────────────────────────────────
   const filtrados = items.filter(p =>
-    `${p.nombres ?? ""} ${p.apellidosPaterno ?? ""} ${p.apellidosMaterno ?? ""} ${p.usuario?.userName ?? ""} ${p.usuario?.tipoUsuario ?? ""}`
+    `${p.nombres ?? ""} ${p.apellidosPaterno ?? ""} ${p.apellidosMaterno ?? ""} ${p.usuario?.userName ?? ""}`
       .toLowerCase().includes(busqueda.toLowerCase())
   );
 
@@ -188,11 +186,11 @@ export default function UsuariosPage() {
           onChange={e => setBusqueda(e.target.value)}
           style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.93rem", minWidth: 240 }}
         />
-        <button
+        {crear && <button
           onClick={() => setForm({})}
           style={{ padding: "9px 20px", borderRadius: 8, background: "#4c7318", color: "#fff", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
           + Nuevo usuario
-        </button>
+        </button>}
       </div>
 
       {/* Tabla */}
@@ -202,7 +200,7 @@ export default function UsuariosPage() {
         loading={loading}
         keyField="personaId"
         mensajeVacio="No hay usuarios registrados."
-        onEdit={(p) => setForm({
+        onEdit={modificar ? (p) => setForm({
           personaId:        p.personaId,
           tipoDocumento:    p.tipoDocumento,
           numeroDocumento:  p.numeroDocumento,
@@ -213,8 +211,8 @@ export default function UsuariosPage() {
           email:            p.email,
           telefono:         p.telefono,
           direccion:        p.direccion,
-        })}
-        onDelete={(p) => setConfirm({ open: true, personaId: p.personaId, loading: false })}
+        }) : undefined}
+        onDelete={eliminar ? (p) => setConfirm({ open: true, personaId: p.personaId, loading: false }) : undefined}
         accionesExtra={accionesExtra}
       />
 

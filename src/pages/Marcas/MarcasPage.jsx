@@ -4,6 +4,7 @@ import { marcasApi } from "../../api/marcas.api";
 import ModalDialog from "../../components/ui/ModalDialog";
 import DataTable   from "../../components/ui/DataTable";
 import MarcaForm   from "./MarcaForm";
+import { usePermiso } from "../../stores/menuSlice";
 
 const FIELDS = [
   { name: "nombre", label: "Nombre", type: "text", required: true, placeholder: "Ej: Samsung", span: 2 },
@@ -20,6 +21,7 @@ const columnas = [
 ];
 
 export default function MarcasPage() {
+  const { crear, modificar, eliminar } = usePermiso("Marcas");
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -32,7 +34,7 @@ export default function MarcasPage() {
     setLoading(true);
     try {
       const data = await marcasApi.listar();
-      setItems(Array.isArray(data.datos) ? data.datos : []);
+      setItems(Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : []);
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al listar marcas." });
     } finally {
@@ -46,10 +48,12 @@ export default function MarcasPage() {
     setFormLoading(true);
     try {
       if (form?.marcaId) {
-        await marcasApi.actualizar(form.marcaId, valores);
+        const res = await marcasApi.actualizar(form.marcaId, valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo actualizar.");
         setModal({ open: true, variant: "success", message: "Marca actualizada correctamente." });
       } else {
-        await marcasApi.crear(valores);
+        const res = await marcasApi.crear(valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo crear.");
         setModal({ open: true, variant: "success", message: "Marca creada correctamente." });
       }
       setForm(null);
@@ -64,7 +68,8 @@ export default function MarcasPage() {
   const confirmarEliminar = async () => {
     setConfirm((p) => ({ ...p, loading: true }));
     try {
-      await marcasApi.eliminar(confirm.marcaId);
+      const res = await marcasApi.eliminar(confirm.marcaId);
+      if (res?.exito === false) throw new Error(res.mensaje || "No se pudo eliminar.");
       setConfirm({ open: false, marcaId: null, loading: false });
       setModal({ open: true, variant: "success", message: "Marca eliminada correctamente." });
       load();
@@ -95,7 +100,7 @@ export default function MarcasPage() {
             border: "1px solid #d1d5db", fontSize: "0.95rem", minWidth: 240,
           }}
         />
-        <button
+        {crear && <button
           onClick={() => setForm({})}
           style={{
             padding: "9px 20px", borderRadius: 8,
@@ -105,7 +110,7 @@ export default function MarcasPage() {
           }}
         >
           + Nueva marca
-        </button>
+        </button>}
       </div>
 
       {/* Tabla genérica */}
@@ -115,8 +120,8 @@ export default function MarcasPage() {
         loading={loading}
         keyField="marcaId"
         mensajeVacio="No hay marcas registradas."
-        onEdit={(m) => setForm({ marcaId: m.marcaId, nombre: m.nombre, modelo: m.modelo })}
-        onDelete={(m) => setConfirm({ open: true, marcaId: m.marcaId, loading: false })}
+        onEdit={modificar ? (m) => setForm({ marcaId: m.marcaId, nombre: m.nombre, modelo: m.modelo }) : undefined}
+        onDelete={eliminar ? (m) => setConfirm({ open: true, marcaId: m.marcaId, loading: false }) : undefined}
       />
 
       {/* Modal formulario */}

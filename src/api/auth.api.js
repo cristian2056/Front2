@@ -29,10 +29,10 @@ export const authApi = {
     return res.json();
   },
 
-  // Carga los menús y permisos del usuario logueado
-  // Se llama justo después del login con el accessToken recién obtenido
-  obtenerMenu: async (accessToken) => {
-    const res = await fetch(`${API_BASE_URI}/api/Menu`, {
+  // Carga menús y permisos del usuario → GET /api/Menu/usuario/{usuarioId}
+  // Respuesta: { exito, datos: { menus: MenuItemDto[], permisos: { Modulo: {leer,crear,modificar,eliminar} } } }
+  obtenerMenu: async (usuarioId, accessToken) => {
+    const res = await fetch(`${API_BASE_URI}/api/Menu/usuario/${usuarioId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

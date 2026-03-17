@@ -155,7 +155,7 @@ function FormFoto({ onGuardar, onCancelar, loading }) {
 }
 
 // ─── Tab principal ─────────────────────────────────────────────────────────────
-export default function TabFotos({ equipoId }) {
+export default function TabFotos({ equipoId, crear, eliminar }) {
   const [lista,        setLista]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState("");
@@ -168,7 +168,7 @@ export default function TabFotos({ equipoId }) {
     setLoading(true); setError("");
     try {
       const data = await fotosApi.listar();
-      const todas = Array.isArray(data.datos) ? data.datos : [];
+      const todas = Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : [];
       setLista(todas.filter(f => String(f.equipoId) === String(equipoId)));
     } catch (e) {
       setError(e.message || "Error al cargar fotos.");
@@ -222,7 +222,7 @@ export default function TabFotos({ equipoId }) {
     <div>
       <ErrorBanner mensaje={error} />
 
-      {!mostrarForm && (
+      {!mostrarForm && crear && (
         <div style={{ marginBottom: 16 }}>
           <button onClick={() => setMostrarForm(true)}
             style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#4c7318", color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
@@ -260,7 +260,7 @@ export default function TabFotos({ equipoId }) {
                   {foto.nombre ?? "Sin nombre"}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  {confirmElim === foto.fotoId ? (
+                  {eliminar && (confirmElim === foto.fotoId ? (
                     <ConfirmInline
                       onConfirmar={() => handleEliminar(foto.fotoId)}
                       onCancelar={() => setConfirmElim(null)}
@@ -270,7 +270,7 @@ export default function TabFotos({ equipoId }) {
                       style={{ flex: 1, padding: "4px 0", borderRadius: 6, border: "1.5px solid #fca5a5", background: "#fff", cursor: "pointer", color: "#dc2626", fontSize: "0.8rem" }}>
                       🗑️ Eliminar
                     </button>
-                  )}
+                  ))}
                 </div>
               </div>
             </div>

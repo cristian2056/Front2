@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { equiposApi } from "../../api/equipos.api";
+import { usePermiso } from "../../stores/menuSlice";
 import TabInfoGeneral from "./tabs/TabInfoGeneral";
 import TabComponentes from "./tabs/TabComponentes";
 import TabSoftware    from "./tabs/TabSoftware";
@@ -21,6 +22,7 @@ const TABS = [
 export default function EquipoDetalle() {
   const { id }      = useParams();
   const navigate    = useNavigate();
+  const { crear, modificar, eliminar } = usePermiso("Equipos");
   const [equipo,    setEquipo]   = useState(null);
   const [loading,   setLoading]  = useState(true);
   const [error,     setError]    = useState("");
@@ -99,12 +101,12 @@ export default function EquipoDetalle() {
       </div>
 
       <div>
-        {tabActiva === "info"        && <TabInfoGeneral  equipo={equipo} equipoId={id} onActualizado={setEquipo} />}
-        {tabActiva === "componentes" && <TabComponentes  equipoId={id} />}
-        {tabActiva === "software"    && <TabSoftware     equipoId={id} />}
-        {tabActiva === "red"         && <TabRed          equipoId={id} />}
-        {tabActiva === "fotos"       && <TabFotos        equipoId={id} />}
-        {tabActiva === "asignacion"  && <TabAsignacion   equipoId={id} />}
+        {tabActiva === "info"        && <TabInfoGeneral  equipo={equipo} equipoId={id} onActualizado={setEquipo} modificar={modificar} />}
+        {tabActiva === "componentes" && <TabComponentes  equipoId={id} crear={crear} modificar={modificar} eliminar={eliminar} />}
+        {tabActiva === "software"    && <TabSoftware     equipoId={id} crear={crear} modificar={modificar} eliminar={eliminar} />}
+        {tabActiva === "red"         && <TabRed          equipoId={id} crear={crear} modificar={modificar} eliminar={eliminar} />}
+        {tabActiva === "fotos"       && <TabFotos        equipoId={id} crear={crear} eliminar={eliminar} />}
+        {tabActiva === "asignacion"  && <TabAsignacion   equipoId={id} crear={crear} modificar={modificar} eliminar={eliminar} />}
       </div>
     </div>
   );

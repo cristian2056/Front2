@@ -5,6 +5,7 @@ import CheckboxUI from "../../../components/ui/CheckboxUI";
 
 export default function TabMenus({ menus, menuAcceso, onToggle }) {
   const lista  = Array.isArray(menus) ? menus : [];
+  console.log("[TabMenus] lista recibida:", lista.length, lista);
   const padres = lista.filter(m => !m.menuPadreId);
   const hijos  = (padreId) => lista.filter(m => m.menuPadreId === padreId);
 

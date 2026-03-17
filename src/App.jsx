@@ -1,8 +1,9 @@
 // src/App.jsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { RouterProvider } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "./stores/authSlice";
+import { setMenu } from "./stores/menuSlice";
 import { authApi } from "./api/auth.api";
 import { router } from "./app/routes";
 
@@ -10,8 +11,6 @@ import { router } from "./app/routes";
 export default function App() {
   const dispatch = useDispatch();
 
-  // loading: mientras verifica la sesión, no mostramos nada
-  // (evita un flash del login antes de recuperar la sesión)
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -19,16 +18,26 @@ export default function App() {
       try {
         const resultado = await authApi.refresh();
 
-        if (resultado.exito) {
-          // Cookie válida → restaurar sesión en Redux
-          dispatch(setCredentials({
-            accessToken: resultado.datos.accessToken,
-            usuario:     resultado.datos.usuario,
-          }));
+        if (resultado?.exito) {
+          const { accessToken, usuario } = resultado.datos;
+
+          dispatch(setCredentials({ accessToken, usuario }));
+
+          // Cargar menus y permisos — GET /api/Menu/usuario/{usuarioId}
+          const menuResult = await authApi.obtenerMenu(usuario.usuarioId, accessToken);
+
+          const menus = menuResult?.datos?.menus ?? [];
+
+          const rawPermisos = menuResult?.datos?.permisos ?? {};
+          const permisos = {};
+          for (const [key, val] of Object.entries(rawPermisos)) {
+            permisos[key.toLowerCase()] = val;
+          }
+
+          dispatch(setMenu({ menus, permisos }));
         }
-        // Si falla simplemente no hay sesión, el router manda al login
       } catch {
-        // Sin cookie o expirada → no hacer nada, el router redirige al login
+        // Sin cookie o expirada → el router redirige al login
       } finally {
         setChecking(false);
       }

@@ -4,6 +4,7 @@ import { proveedoresApi } from "../../api/administracion.api";
 import DataTable  from "../../components/ui/DataTable";
 import ModalDialog from "../../components/ui/ModalDialog";
 import FormModal   from "../../components/ui/FormModal";
+import { usePermiso } from "../../stores/menuSlice";
 
 const CALIFICACIONES = [
   { value: "Alta", label: "Alta" },
@@ -50,6 +51,7 @@ const columnas = [
 ];
 
 export default function ProveedoresPage() {
+  const { crear, modificar, eliminar } = usePermiso("Proveedores");
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -62,7 +64,8 @@ export default function ProveedoresPage() {
     setLoading(true);
     try {
       const data = await proveedoresApi.listar();
-      setItems(Array.isArray(data.datos) ? data.datos : []);
+      const raw = data.datos;
+      setItems(Array.isArray(raw) ? raw : raw ? [raw] : []);
     } catch (e) {
       setModal({ open: true, variant: "error", message: e.message || "Error al cargar." });
     } finally { setLoading(false); }
@@ -74,10 +77,12 @@ export default function ProveedoresPage() {
     setFormLoading(true);
     try {
       if (form?.proveedorId) {
-        await proveedoresApi.actualizar(form.proveedorId, valores);
+        const res = await proveedoresApi.actualizar(form.proveedorId, valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo actualizar.");
         setModal({ open: true, variant: "success", message: "Proveedor actualizado correctamente." });
       } else {
-        await proveedoresApi.crear(valores);
+        const res = await proveedoresApi.crear(valores);
+        if (res?.exito === false) throw new Error(res.mensaje || "No se pudo crear.");
         setModal({ open: true, variant: "success", message: "Proveedor creado correctamente." });
       }
       setForm(null);
@@ -90,7 +95,8 @@ export default function ProveedoresPage() {
   const confirmarEliminar = async () => {
     setConfirm(p => ({ ...p, loading: true }));
     try {
-      await proveedoresApi.eliminar(confirm.id);
+      const res = await proveedoresApi.eliminar(confirm.id);
+      if (res?.exito === false) throw new Error(res.mensaje || "No se pudo eliminar.");
       setConfirm({ open: false, id: null, loading: false });
       setModal({ open: true, variant: "success", message: "Proveedor eliminado correctamente." });
       cargar();
@@ -116,17 +122,17 @@ export default function ProveedoresPage() {
           placeholder="🔍 Buscar por nombre, RUC, rubro..."
           style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.93rem", minWidth: 260 }}
         />
-        <button onClick={() => setForm({})} style={{
+        {crear && <button onClick={() => setForm({})} style={{
           padding: "9px 20px", borderRadius: 8, background: "#4c7318",
           color: "#fff", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-        }}>+ Nuevo proveedor</button>
+        }}>+ Nuevo proveedor</button>}
       </div>
 
       <DataTable
         columnas={columnas} datos={filtrados} loading={loading}
         keyField="proveedorId" mensajeVacio="No hay proveedores registrados."
-        onEdit={p => setForm({ ...p })}
-        onDelete={p => setConfirm({ open: true, id: p.proveedorId, loading: false })}
+        onEdit={modificar ? p => setForm({ ...p }) : undefined}
+        onDelete={eliminar ? p => setConfirm({ open: true, id: p.proveedorId, loading: false }) : undefined}
       />
 
       {form !== null && (

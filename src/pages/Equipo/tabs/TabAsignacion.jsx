@@ -119,7 +119,7 @@ function TipoUsuarioBadge({ tipo }) {
 }
 
 // ─── Tab principal ─────────────────────────────────────────────────────────────
-export default function TabAsignacion({ equipoId }) {
+export default function TabAsignacion({ equipoId, crear, modificar, eliminar }) {
   const [lista,       setLista]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState("");
@@ -132,7 +132,7 @@ export default function TabAsignacion({ equipoId }) {
     setLoading(true); setError("");
     try {
       const data = await equipoAsignacionApi.listar();
-      const todas = Array.isArray(data.datos) ? data.datos : [];
+      const todas = Array.isArray(data.datos) ? data.datos : data.datos ? [data.datos] : [];
       setLista(todas.filter(a => String(a.equipoId) === String(equipoId)));
     } catch (e) {
       setError(e.message || "Error al cargar asignaciones.");
@@ -176,7 +176,7 @@ export default function TabAsignacion({ equipoId }) {
     <div>
       <ErrorBanner mensaje={error} />
 
-      {!mostrarForm && (
+      {!mostrarForm && crear && (
         <div style={{ marginBottom: 16 }}>
           <button onClick={() => setMostrarForm(true)}
             style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#4c7318", color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
@@ -230,9 +230,11 @@ export default function TabAsignacion({ equipoId }) {
               </div>
 
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button onClick={() => { setEditando(asig); setMostrarForm(true); }}
-                  style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.85rem" }}>✏️</button>
-                {confirmElim === asig.equipoAsignacionId ? (
+                {modificar && (
+                  <button onClick={() => { setEditando(asig); setMostrarForm(true); }}
+                    style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.85rem" }}>✏️</button>
+                )}
+                {eliminar && (confirmElim === asig.equipoAsignacionId ? (
                   <ConfirmInline
                     onConfirmar={() => handleEliminar(asig.equipoAsignacionId)}
                     onCancelar={() => setConfirmElim(null)}
@@ -240,7 +242,7 @@ export default function TabAsignacion({ equipoId }) {
                 ) : (
                   <button onClick={() => setConfirmElim(asig.equipoAsignacionId)}
                     style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #fca5a5", background: "#fff", cursor: "pointer", color: "#dc2626", fontSize: "0.85rem" }}>🗑️</button>
-                )}
+                ))}
               </div>
             </div>
           ))}
