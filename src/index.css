@@ -70,6 +70,14 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+/* ── Centra el contenido de cada página dentro del panel glass ── */
+.content-glass > * {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* ── Barra superior de páginas (dentro del panel glass blanco) ── */
 .page-toolbar {
   display: flex;
